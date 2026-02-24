@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-// This points to the backend server (Sathya's part)
-// Use http://10.0.2.2:5000/api if using Android Emulator
-const BASE_URL = 'http://localhost:5000/api';
+// 1. This uses your exact IPv4 address to bridge the Wi-Fi gap
+// DO NOT use 'localhost' here; your phone won't find it!
+export const API_URL = "http://10.78.169.136:5000/api";
 
+// 2. Create the Axios engine with the correct base address
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },

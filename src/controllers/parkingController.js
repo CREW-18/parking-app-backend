@@ -1,49 +1,68 @@
-import Parking from "../models/Parking.js";
+const Parking = require('../models/Parking');
+const Slot = require('../models/Slot');
 
-// POST /api/parking
-export const createParking = async (req, res) => {
+// 1. PARK A VEHICLE
+exports.parkVehicle = async (req, res) => {
   try {
-    const { name, address, city, totalSlots } = req.body;
+    const { vehicleNumber, slotId } = req.body;
 
-    if (!name || !address || !city || !totalSlots) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const parking = await Parking.create({
-      name,
-      address,
-      city,
-      totalSlots,
+    // Create the parking record
+    const newParking = new Parking({
+      vehicleNumber,
+      slotId,
+      status: "Active",
+      entryTime: new Date()
     });
 
-    res.status(201).json(parking);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    await newParking.save();
+
+    // Mark the slot as occupied so no one else takes it
+    await Slot.findByIdAndUpdate(slotId, { isAvailable: false });
+
+    res.status(201).json({
+      message: `Vehicle ${vehicleNumber} has been parked.`,
+      parking: newParking
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-// GET /api/parking
-export const getAllParkings = async (req, res) => {
+// 2. GET ALL ACTIVE PARKING RECORDS (Dashboard)
+exports.getParkings = async (req, res) => {
   try {
-    const parkings = await Parking.find().sort({ createdAt: -1 });
-    res.json(parkings);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // We added { status: 'Active' } here to hide the "Completed" vehicles!
+    const parkings = await Parking.find({ status: 'Active' }).populate('slotId');
+    res.status(200).json(parkings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 
-// GET /api/parking/:id
-export const getParkingById = async (req, res) => {
+// 3. EXIT PARKING (The new logic for your EXIT buttons)
+exports.exitParking = async (req, res) => {
   try {
-    const parking = await Parking.findById(req.params.id);
+    const { parkingId } = req.params;
 
-    if (!parking) {
-      return res.status(404).json({ message: "Parking not found" });
+    // Find the active record
+    const record = await Parking.findById(parkingId);
+    if (!record) {
+      return res.status(404).json({ message: "Parking record not found" });
     }
 
-    res.json(parking);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // Update the record status
+    record.status = "Completed";
+    record.exitTime = new Date();
+    await record.save();
+
+    // Crucial: Make the Slot available again in the database
+    await Slot.findByIdAndUpdate(record.slotId, { isAvailable: true });
+
+    res.status(200).json({ 
+      message: "Vehicle exited successfully!",
+      record 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
-

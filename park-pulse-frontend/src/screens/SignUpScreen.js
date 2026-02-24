@@ -1,129 +1,53 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  TextInput, 
-  Alert, 
-  ActivityIndicator,
-  ScrollView 
-} from 'react-native';
-import axios from 'axios';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 
 const SignUpScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  // Connection to your Backend API
   const handleSignUp = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Error", "All fields are required!");
-      return;
-    }
-
-    setLoading(true);
     try {
-      // Replace with your IP if testing on a physical phone
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
-        name,
-        email,
-        password
+      const response = await fetch("http://10.78.169.136:5000/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
       });
 
-      console.log("Registration Successful:", response.data);
-      Alert.alert("Success", "Account created! Please log in.");
-      navigation.navigate('Login'); // Go back to login screen
+      if (response.ok) {
+        Alert.alert("Success", "Account created! Now Log In.");
+        navigation.navigate("Login");
+      } else {
+        const errorData = await response.json();
+        Alert.alert("Registration Failed", errorData.message || "Something went wrong");
+      }
     } catch (error) {
-      console.log("Registration Error:", error.response?.data || error.message);
-      Alert.alert("Registration Failed", error.response?.data?.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+      Alert.alert("Network Error", "Check your Wi-Fi and Backend at 10.78.169.136");
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.brandSection}>
-        <Text style={styles.logoText}>P</Text>
-        <Text style={styles.appName}>JOIN PARK PULSE</Text>
-      </View>
-
-      <View style={styles.inputSection}>
-        <Text style={styles.infoTitle}>Create Account</Text>
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          placeholderTextColor="#666"
-          value={name}
-          onChangeText={setName}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          placeholderTextColor="#666"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#666"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-      </View>
-
-      <View style={styles.bottomSection}>
-        <TouchableOpacity 
-          style={styles.mainButton} 
-          onPress={handleSignUp}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#000" />
-          ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.linkText}>Already have an account? <Text style={{color: '#00ff88'}}>Log In</Text></Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    <View style={styles.container}>
+      <Text style={styles.title}>JOIN PARK PULSE</Text>
+      <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#666" value={name} onChangeText={setName} />
+      <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor="#666" value={email} onChangeText={setEmail} autoCapitalize="none" />
+      <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#666" value={password} onChangeText={setPassword} secureTextEntry />
+      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+        <Text style={styles.buttonText}>Sign Up</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+        <Text style={{color: '#00FF7F', textAlign: 'center', marginTop: 15}}>Already have an account? Log In</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#0f0f0f', paddingVertical: 40 },
-  brandSection: { alignItems: 'center', marginTop: 30 },
-  logoText: { color: '#00ff88', fontSize: 70, fontWeight: 'bold', fontStyle: 'italic' },
-  appName: { color: '#fff', fontSize: 24, letterSpacing: 3, fontWeight: 'bold', marginTop: 10 },
-  inputSection: { paddingHorizontal: 30, marginTop: 40 },
-  infoTitle: { color: '#fff', fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
-  input: {
-    backgroundColor: '#1a1a1a',
-    color: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#333'
-  },
-  bottomSection: { paddingHorizontal: 20, marginTop: 20 },
-  mainButton: { backgroundColor: '#00ff88', padding: 18, borderRadius: 30, alignItems: 'center', marginBottom: 20 },
-  buttonText: { color: '#000', fontWeight: 'bold', fontSize: 18 },
-  linkText: { color: '#888', textAlign: 'center', fontSize: 14 }
+  container: { flex: 1, backgroundColor: '#000', padding: 20, justifyContent: 'center' },
+  title: { color: '#FFF', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 30 },
+  input: { backgroundColor: '#111', color: '#FFF', padding: 15, borderRadius: 10, marginBottom: 15 },
+  button: { backgroundColor: '#00FF7F', padding: 15, borderRadius: 30, alignItems: 'center' },
+  buttonText: { color: '#000', fontWeight: 'bold' }
 });
 
 export default SignUpScreen;

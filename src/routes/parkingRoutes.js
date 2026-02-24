@@ -1,14 +1,14 @@
-import express from "express";
-import {
-  createParking,
-  getAllParkings,
-  getParkingById
-} from "../controllers/parkingController.js";
-
+const express = require('express');
 const router = express.Router();
+const { parkVehicle, getParkings, exitParking } = require('../controllers/parkingController');
 
-router.post("/", createParking);
-router.get("/", getAllParkings);
-router.get("/:id", getParkingById);
+// Route: POST /api/parking
+router.post('/', parkVehicle);
 
-export default router;
+// Route: GET /api/parking
+router.get('/', getParkings);
+
+// Add this line below your other routes
+router.put('/exit/:parkingId', exitParking);
+
+module.exports = router;

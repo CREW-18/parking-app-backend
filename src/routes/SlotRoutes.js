@@ -1,12 +1,8 @@
-import express from "express";
-import {
-  createSlot,
-  getSlotsByParking
-} from "../controllers/slotController.js";
-
+const express = require("express");
+const { createSlot, getSlotsByParking } = require("../controllers/slotController.js");
 const router = express.Router();
 
 router.post("/", createSlot);
 router.get("/:parkingId", getSlotsByParking);
 
-export default router;
+module.exports = router;

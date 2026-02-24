@@ -1,34 +1,28 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const slotSchema = new mongoose.Schema(
   {
-    parkingId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Parking",
-      required: true,
-    },
-
     slotNumber: {
-      type: Number,
+      type: String, // Changed to String so it accepts "A1"
       required: true,
+      unique: true,
+      trim: true,
     },
-
-    type: {
+    vehicleType: {
       type: String,
-      enum: ["car", "bike"],
-      default: "car",
+      required: true,
+      enum: ['Car', 'Bike'], 
+      default: 'Car',
     },
-
-    isActive: {
+    isAvailable: {
       type: Boolean,
       default: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-slotSchema.index({ parkingId: 1, slotNumber: 1 }, { unique: true });
-
-const Slot = mongoose.model("Slot", slotSchema);
-
-export default Slot;
+// We don't require a parkingId upon creation anymore!
+module.exports = mongoose.model("Slot", slotSchema);
