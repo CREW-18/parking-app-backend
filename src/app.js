@@ -4,7 +4,7 @@ import morgan from "morgan";
 
 import authRoutes from "./routes/authRoutes.js";
 import parkingRoutes from "./routes/parkingRoutes.js";
-import slotRoutes from "./routes/slotRoutes.js";
+import slotRoutes from "./routes/SlotRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
@@ -28,4 +28,5 @@ app.use(notFound);
 app.use(errorHandler);
 
 export default app;
+
 
