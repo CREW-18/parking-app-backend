@@ -14,10 +14,10 @@ app.use(cors());
 app.use(express.json());
 
 // 4. Import Routes (The proper CommonJS way)
-const authRoutes = require("./routes/authRoutes.js");
-const bookingRoutes = require("./routes/bookingRoutes.js");
-const parkingRoutes = require("./routes/parkingRoutes.js");
-const slotRoutes = require("./routes/SlotRoutes.js");
+const authRoutes = require("./authRoutes.js");
+const bookingRoutes = require("./bookingRoutes.js");
+const parkingRoutes = require("./parkingRoutes.js");
+const slotRoutes = require("./SlotRoutes.js");
 
 // 5. Direct Database Connection Engine
 // We do this directly here to prevent config folder crashes!
