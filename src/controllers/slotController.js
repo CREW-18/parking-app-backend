@@ -1,48 +1,27 @@
-import Slot from "../models/Slot.js";
-import Parking from "../models/Parking.js";
+const Slot = require("../models/Slot.js");
 
-// POST /api/slots
-export const createSlot = async (req, res) => {
+// 1. Logic to create a new parking slot
+const createSlot = async (req, res) => {
   try {
     const { parkingId, slotNumber, type } = req.body;
-
-    if (!parkingId || !slotNumber) {
-      return res.status(400).json({ message: "parkingId and slotNumber required" });
-    }
-
-    const parkingExists = await Parking.findById(parkingId);
-    if (!parkingExists) {
-      return res.status(404).json({ message: "Parking not found" });
-    }
-
-    const slotExists = await Slot.findOne({ parkingId, slotNumber });
-    if (slotExists) {
-      return res.status(400).json({ message: "Slot already exists" });
-    }
-
-    const slot = await Slot.create({
-      parkingId,
-      slotNumber,
-      type: type || "car",
-      isActive: true,
-    });
-
-    res.status(201).json(slot);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const newSlot = new Slot({ parkingId, slotNumber, type, isAvailable: true });
+    await newSlot.save();
+    res.status(201).json(newSlot);
+  } catch (error) {
+    res.status(500).json({ message: "Error creating slot", error: error.message });
   }
 };
 
-// GET /api/slots/:parkingId
-export const getSlotsByParking = async (req, res) => {
+// 2. Logic to fetch all slots for a specific mall/parking area
+const getSlotsByParking = async (req, res) => {
   try {
-    const slots = await Slot.find({ parkingId: req.params.parkingId }).sort({
-      slotNumber: 1,
-    });
-
-    res.json(slots);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    const { parkingId } = req.params;
+    const slots = await Slot.find({ parkingId });
+    res.status(200).json(slots);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching slots", error: error.message });
   }
 };
 
+// THE CRITICAL FIX: Exporting so the Router can see the functions
+module.exports = { createSlot, getSlotsByParking };

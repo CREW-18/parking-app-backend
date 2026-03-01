@@ -1,172 +1,130 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location'; 
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert } from 'react-native';
 
-// --- IMPORT THE GLOBAL BRAIN ---
-import { AuthContext } from '../context/AuthContext';
-
-export default function HomeScreen({ route, navigation }) {
-  const [currentCity, setCurrentCity] = useState(route.params?.cityName || 'Bengaluru');
-  const [malls, setMalls] = useState([]);
+const HomeScreen = () => {
+  const [parkingRecords, setParkingRecords] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [gettingLocation, setGettingLocation] = useState(false);
 
-  const { user } = useContext(AuthContext); 
-  
-  let displayName = 'Driver';
-  if (user && user !== "Guest") {
-    if (user.toLowerCase() === 'jashanpratul.8b@gmail.com') {
-      displayName = 'Jashan Pratul';
-    } else {
-      displayName = user.split('@')[0]; 
-    }
-  }
+  // REPLACE THIS WITH YOUR ACTUAL IP ADDRESS
+  const API_BASE_URL = 'http://10.78.169.136:5000/api/parking';
 
-  // --- THE GPS LOCATE ME FUNCTION ---
-  const locateMe = async () => {
-    setGettingLocation(true);
+  const fetchParkingData = async () => {
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Allow location access to find spots near you.');
-        setGettingLocation(false);
-        return;
-      }
+      const response = await fetch(API_BASE_URL);
+      const data = await response.json();
+      setParkingRecords(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("AI Fetch Error:", error);
+      setLoading(false);
+    }
+  };
 
-      let location = await Location.getCurrentPositionAsync({});
-      
-      let geo = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude
+  const handleExit = async (parkingId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/exit/${parkingId}`, {
+        method: 'PUT',
       });
+      
+      const result = await response.json();
 
-      if (geo.length > 0) {
-        const foundCity = geo[0].city || geo[0].subregion || geo[0].region;
-        setCurrentCity(foundCity);
+      if (response.ok) {
+        Alert.alert("Success 🏁", "Vehicle has exited. Slot is now available.");
+        fetchParkingData(); // Refresh the list automatically
+      } else {
+        Alert.alert("Error", result.message || "Failed to process exit.");
       }
     } catch (error) {
-      console.error("GPS Error:", error);
-      Alert.alert('GPS Error', 'Could not fetch your location right now.');
+      console.error("Exit Error:", error);
+      Alert.alert("Error", "Could not connect to server.");
     }
-    setGettingLocation(false);
   };
 
   useEffect(() => {
-    // --- WIRED DIRECTLY TO YOUR LAPTOP ---
-    fetch(`http://10.22.9.136:5000/api/parking/malls/${currentCity}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setMalls(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching malls:", error);
-        setLoading(false); 
-      });
-  }, [currentCity]); 
+    fetchParkingData();
+  }, []);
 
-  const renderMallCard = ({ item }) => (
-    <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('Booking', { mall: item })}>
-      <LinearGradient colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']} style={styles.mallCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.mallName}>{item.name}</Text>
-          <Ionicons name="chevron-forward-circle" size={24} color="#00E676" />
-        </View>
-        <Text style={styles.mallAddress}>
-          <Ionicons name="location-outline" size={14} color="#aaa" /> {item.address}
-        </Text>
-        <View style={styles.priceContainer}>
-          <View style={styles.tag}>
-            <Ionicons name="pricetag-outline" size={16} color="#00E676" style={{marginRight: 5}} />
-            <Text style={styles.priceText}>₹{item.pricePerHour} / hr</Text>
-          </View>
-          <View style={[styles.tag, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-            <Text style={styles.slotsText}>{item.availableSlots || '12'} Slots Left</Text>
-          </View>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#00FF66" />
+        <Text style={styles.loadingText}>Fetching Matrix Data...</Text>
+      </View>
+    );
+  }
 
   return (
-    <LinearGradient colors={['#0F172A', '#020617', '#000000']} style={styles.container}>
-      <SafeAreaView style={{ flex: 1 }}>
+    <ScrollView style={styles.container}>
+      <Text style={styles.header}>Welcome, Driver!</Text>
+      
+      <View style={styles.radarCard}>
+        <Text style={styles.radarTitle}>📍 Live Parking Radar Active</Text>
         
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hi, {displayName} 👋</Text>
-            
-            <TouchableOpacity 
-              style={styles.locationBadge} 
-              onPress={locateMe}
-              disabled={gettingLocation}
-            >
-              {gettingLocation ? (
-                <ActivityIndicator size="small" color="#00E676" />
-              ) : (
-                <Ionicons name="navigate-circle" size={18} color="#00E676" />
-              )}
-              <Text style={styles.cityText}>
-                {gettingLocation ? "Locating..." : currentCity}
-              </Text>
-            </TouchableOpacity>
-
-          </View>
+        <View style={styles.analysisBox}>
+          <Text style={styles.analysisTitle}>⚡ Active Parkings</Text>
           
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={20} color="#00E676" />
-          </View>
+          {parkingRecords.length > 0 ? (
+            parkingRecords.map((record) => (
+              <View key={record._id} style={styles.statusCard}>
+                <View style={styles.infoColumn}>
+                  <Text style={styles.labelText}>VEHICLE NUMBER</Text>
+                  <Text style={styles.vehicleText}>{record.vehicleNumber}</Text>
+                </View>
+
+                <View style={styles.slotBadge}>
+                  <Text style={styles.slotLabel}>SLOT</Text>
+                  <Text style={styles.slotNumber}>{record.slotId?.slotNumber || '??'}</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.exitButton} 
+                  onPress={() => handleExit(record._id)}
+                >
+                  <Text style={styles.exitButtonText}>EXIT</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noDataText}>No active vehicles detected in range.</Text>
+          )}
         </View>
 
-        <Text style={styles.subHeader}>Premium Spots Near You</Text>
-
-        {loading ? (
-          <ActivityIndicator size="large" color="#00E676" style={{ marginTop: 50 }} />
-        ) : malls.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="map-outline" size={60} color="#334155" />
-            <Text style={styles.noDataText}>No spots listed in {currentCity} yet.</Text>
-            <Text style={styles.noDataSub}>Try searching a different area.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={malls}
-            keyExtractor={(item) => item._id}
-            renderItem={renderMallCard}
-            contentContainerStyle={{ paddingBottom: 30 }}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </SafeAreaView>
-    </LinearGradient>
+        <TouchableOpacity style={styles.rescanButton} onPress={fetchParkingData}>
+          <Text style={styles.rescanText}>RESCAN AREA</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 50, marginBottom: 30 },
-  greeting: { color: 'white', fontSize: 32, fontWeight: '900', letterSpacing: 0.5 },
-  
-  locationBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0, 230, 118, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 8, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(0, 230, 118, 0.3)' },
-  cityText: { color: '#00E676', fontSize: 14, fontWeight: 'bold', marginLeft: 6 },
-  
-  avatar: { width: 45, height: 45, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,230,118,0.3)' },
-  
-  subHeader: { color: '#E2E8F0', fontSize: 20, fontWeight: '600', marginBottom: 20 },
-  
-  mallCard: { padding: 20, borderRadius: 24, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mallName: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-  mallAddress: { color: '#94A3B8', fontSize: 14, marginTop: 8, marginBottom: 20 },
-  
-  priceContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tag: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,230,118,0.1)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12 },
-  priceText: { color: '#00E676', fontSize: 16, fontWeight: 'bold' },
-  slotsText: { color: 'white', fontSize: 14, fontWeight: '600' },
-
-  emptyContainer: { alignItems: 'center', marginTop: 50 },
-  noDataText: { color: '#E2E8F0', fontSize: 16, fontWeight: 'bold', marginTop: 15 },
-  noDataSub: { color: '#64748B', fontSize: 14, marginTop: 5 },
+  container: { flex: 1, backgroundColor: '#000', padding: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  header: { color: '#00FF66', fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginTop: 40, marginBottom: 20 },
+  radarCard: { borderWidth: 1, borderColor: '#00FF66', borderRadius: 20, padding: 20, backgroundColor: '#111' },
+  radarTitle: { color: '#888', textAlign: 'center', marginBottom: 20, fontSize: 12, letterSpacing: 1 },
+  analysisBox: { backgroundColor: '#1A1A1A', borderRadius: 15, padding: 15 },
+  analysisTitle: { color: '#FFF', fontWeight: 'bold', marginBottom: 15, fontSize: 18 },
+  statusCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#222', 
+    borderRadius: 12, 
+    padding: 15, 
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#00FF66'
+  },
+  infoColumn: { flex: 1 },
+  labelText: { color: '#555', fontSize: 10, fontWeight: 'bold' },
+  vehicleText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  slotBadge: { backgroundColor: '#00FF66', padding: 8, borderRadius: 10, alignItems: 'center', minWidth: 50, marginRight: 10 },
+  slotLabel: { color: '#000', fontSize: 8, fontWeight: 'bold' },
+  slotNumber: { color: '#000', fontSize: 18, fontWeight: 'bold' },
+  exitButton: { backgroundColor: '#FF3B30', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8 },
+  exitButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  rescanButton: { marginTop: 20, backgroundColor: '#00FF66', padding: 15, borderRadius: 12, alignItems: 'center' },
+  rescanText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+  loadingText: { color: '#00FF66', marginTop: 10 },
+  noDataText: { color: '#555', textAlign: 'center', marginTop: 10, fontStyle: 'italic' }
 });

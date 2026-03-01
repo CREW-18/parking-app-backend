@@ -1,16 +1,34 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const parkingSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    address: { type: String, required: true, trim: true },
-    city: { type: String, required: true, trim: true },
-    totalSlots: { type: Number, required: true },
+    vehicleNumber: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true,
+    },
+    slotId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Slot', 
+      required: true,
+    },
+    entryTime: {
+      type: Date,
+      default: Date.now,
+    },
+    exitTime: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: ['Active', 'Completed'],
+      default: 'Active',
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-const Parking = mongoose.model("Parking", parkingSchema);
-
-export default Parking;
-
+module.exports = mongoose.model("Parking", parkingSchema);

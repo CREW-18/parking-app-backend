@@ -8,7 +8,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     // UPDATED TO YOUR REAL IP
-    fetch('http://10.22.9.136:5000/api/bookings/my-bookings')
+    fetch('http://10.78.169.136:5000/api/bookings/my-bookings')
       .then((res) => res.json())
       .then((data) => { setBookings(data); setLoading(false); })
       .catch(() => setLoading(false));

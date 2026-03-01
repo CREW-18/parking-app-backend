@@ -1,126 +1,130 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 
-export default function BookingScreen({ route, navigation }) {
-  const { mall } = route.params;
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [hours, setHours] = useState(1);
+const BookingScreen = ({ route, navigation }) => {
+  const initialSlotId = route?.params?.slotId || '';
 
-  // Fake slots for now
-  const slots = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-  const totalPrice = mall.pricePerHour * hours;
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [slotId, setSlotId] = useState(initialSlotId);
+  const [loading, setLoading] = useState(false);
+  const [ticket, setTicket] = useState(null); 
 
-  const handleProceed = () => {
-    if (!selectedSlot) {
-      alert("Please select a parking slot!");
+  const handleConfirmParking = async () => {
+    if (!vehicleNumber || !slotId) {
+      Alert.alert("Missing Data", "Please enter both the Vehicle Number and Slot ID.");
       return;
     }
-    navigation.navigate('Payment', { mall, slot: selectedSlot, hours, totalPrice });
+
+    setLoading(true);
+    try {
+      // ⚠️ CRUCIAL: REPLACE WITH YOUR ACTUAL IP ADDRESS IF NEEDED
+      const response = await fetch('http://10.78.169.136:5000/api/parking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleNumber: vehicleNumber,
+          slotId: slotId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTicket(data);
+      } else {
+        Alert.alert("Parking Failed", data.message || "Please check the Slot ID and try again.");
+      }
+    } catch (error) {
+      console.error("Booking Error:", error);
+      Alert.alert("Network Error", "Could not connect to the server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  if (ticket) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.brandText}>PARK PULSE</Text>
+        <View style={styles.ticketCard}>
+          <Text style={styles.ticketTitle}>Parking ticket (1)</Text>
+          <Text style={styles.ticketText}>Ticket no.: {ticket._id?.substring(0, 8).toUpperCase()}</Text>
+          <Text style={styles.ticketText}>Vehicle: {ticket.vehicleNumber}</Text>
+          <View style={styles.qrPlaceholder}>
+            <Text style={styles.qrText}>[ QR CODE WILL GENERATE HERE ]</Text>
+          </View>
+          <Text style={styles.feeText}>Total Amount : ₹30.00</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.doneButton}
+          onPress={() => {
+            setTicket(null); 
+            setVehicleNumber('');
+            setSlotId('');
+          }}
+        >
+          <Text style={styles.doneButtonText}>DONE</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <LinearGradient colors={['#0F172A', '#020617', '#000000']} style={styles.container}>
-      <SafeAreaView style={{ flex: 1 }}>
-        
-        {/* Sleek Custom Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#00E676" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Reserve Spot</Text>
-          <View style={{ width: 40 }} /> {/* Spacer to keep title centered */}
-        </View>
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>New Parking</Text>
+      <Text style={styles.subtitle}>Enter details to assign a slot</Text>
 
-        <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
-          
-          {/* Glassmorphism Mall Info Card */}
-          <LinearGradient colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']} style={styles.infoCard}>
-            <Text style={styles.mallName}>{mall.name}</Text>
-            <Text style={styles.mallAddress}>
-              <Ionicons name="location-outline" size={14} color="#aaa" /> {mall.address}
-            </Text>
-            <View style={styles.tag}>
-              <Ionicons name="time-outline" size={16} color="#00E676" style={{marginRight: 5}} />
-              <Text style={styles.priceText}>₹{mall.pricePerHour} / hour</Text>
-            </View>
-          </LinearGradient>
+      <Text style={styles.label}>VEHICLE PLATE NUMBER</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="e.g. MH 12 AB 1234"
+        placeholderTextColor="#555"
+        value={vehicleNumber}
+        onChangeText={setVehicleNumber}
+        autoCapitalize="characters"
+      />
 
-          {/* Interactive Slot Grid */}
-          <Text style={styles.sectionTitle}>Select a Slot</Text>
-          <View style={styles.slotContainer}>
-            {slots.map((slot) => (
-              <TouchableOpacity 
-                key={slot} 
-                style={[styles.slotButton, selectedSlot === slot && styles.slotButtonSelected]}
-                onPress={() => setSelectedSlot(slot)}
-              >
-                <Text style={[styles.slotText, selectedSlot === slot && styles.slotTextSelected]}>{slot}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <Text style={styles.label}>TARGET SLOT ID</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Paste ID from Dashboard"
+        placeholderTextColor="#555"
+        value={slotId}
+        onChangeText={setSlotId}
+      />
 
-          {/* Smooth Duration Counter */}
-          <Text style={styles.sectionTitle}>Duration</Text>
-          <View style={styles.durationContainer}>
-            <TouchableOpacity onPress={() => setHours(Math.max(1, hours - 1))} style={styles.circleButton}>
-              <Ionicons name="remove" size={24} color="white" />
-            </TouchableOpacity>
-            
-            <Text style={styles.hoursText}>{hours} {hours === 1 ? 'Hour' : 'Hours'}</Text>
-            
-            <TouchableOpacity onPress={() => setHours(hours + 1)} style={styles.circleButton}>
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-
-        </ScrollView>
-
-        {/* Sticky Premium Checkout Footer */}
-        <View style={styles.footer}>
-          <View>
-            <Text style={styles.totalLabel}>Total Price</Text>
-            <Text style={styles.totalPrice}>₹{totalPrice}</Text>
-          </View>
-          <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
-            <Text style={styles.proceedButtonText}>Continue</Text>
-            <Ionicons name="arrow-forward" size={20} color="#121212" style={{marginLeft: 5}} />
-          </TouchableOpacity>
-        </View>
-
-      </SafeAreaView>
-    </LinearGradient>
+      <TouchableOpacity
+        style={styles.confirmButton}
+        onPress={handleConfirmParking}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#000" />
+        ) : (
+          <Text style={styles.confirmButtonText}>CONFIRM PARKING</Text>
+        )}
+      </TouchableOpacity>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,230,118,0.3)' },
-  headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
-  
-  infoCard: { padding: 20, borderRadius: 24, marginBottom: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  mallName: { color: 'white', fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
-  mallAddress: { color: '#94A3B8', fontSize: 14, marginBottom: 15 },
-  tag: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,230,118,0.1)', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, alignSelf: 'flex-start' },
-  priceText: { color: '#00E676', fontSize: 16, fontWeight: 'bold' },
-
-  sectionTitle: { color: '#E2E8F0', fontSize: 18, fontWeight: '600', marginBottom: 15 },
-  
-  slotContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 30 },
-  slotButton: { width: '30%', backgroundColor: 'rgba(255,255,255,0.05)', paddingVertical: 15, borderRadius: 15, alignItems: 'center', marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  slotButtonSelected: { backgroundColor: '#00E676', borderColor: '#00E676', shadowColor: '#00E676', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
-  slotText: { color: '#aaa', fontSize: 18, fontWeight: 'bold' },
-  slotTextSelected: { color: '#121212', fontSize: 18, fontWeight: 'bold' },
-
-  durationContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 20 },
-  circleButton: { width: 45, height: 45, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  hoursText: { color: 'white', fontSize: 20, fontWeight: 'bold' },
-
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-  totalLabel: { color: '#94A3B8', fontSize: 14 },
-  totalPrice: { color: '#00E676', fontSize: 28, fontWeight: 'bold' },
-  proceedButton: { flexDirection: 'row', backgroundColor: '#00E676', paddingVertical: 15, paddingHorizontal: 25, borderRadius: 15, alignItems: 'center' },
-  proceedButtonText: { color: '#121212', fontSize: 18, fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: '#050505', padding: 20, paddingTop: 60 },
+  headerTitle: { color: '#00FF66', fontSize: 32, fontWeight: 'bold', marginBottom: 5 },
+  subtitle: { color: '#888', fontSize: 16, marginBottom: 40 },
+  label: { color: '#FFF', fontSize: 14, fontWeight: 'bold', marginBottom: 10 },
+  input: { backgroundColor: '#1A1A1A', color: '#FFF', padding: 15, borderRadius: 10, marginBottom: 20 },
+  confirmButton: { backgroundColor: '#00FF66', padding: 18, borderRadius: 10, alignItems: 'center', marginTop: 10 },
+  confirmButtonText: { color: '#000', fontSize: 18, fontWeight: 'bold' },
+  brandText: { color: '#00FF66', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  ticketCard: { backgroundColor: '#111', borderRadius: 20, padding: 25, borderWidth: 1, borderColor: '#333' },
+  ticketTitle: { color: '#FFF', fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+  ticketText: { color: '#AAA', fontSize: 16, marginBottom: 10, width: '100%' },
+  qrPlaceholder: { width: 200, height: 200, backgroundColor: '#E0FFEB', justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginVertical: 20, borderRadius: 10 },
+  qrText: { color: '#000', fontWeight: 'bold', textAlign: 'center' },
+  feeText: { color: '#00FF66', fontSize: 20, fontWeight: 'bold', marginTop: 10 },
+  doneButton: { backgroundColor: '#333', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  doneButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
 });
+
+export default BookingScreen;

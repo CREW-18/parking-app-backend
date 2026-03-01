@@ -1,5 +1,14 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+<<<<<<< HEAD
+import TabNavigator from './src/navigation/TabNavigator'; // Points to the file you already have!
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <TabNavigator />
+    </NavigationContainer>
+=======
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 // --- THE GLOBAL BRAIN ---
@@ -68,5 +77,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
+>>>>>>> 43cc5d9eac87366a63fd3723e8af0f50fe2169fd
   );
 }
