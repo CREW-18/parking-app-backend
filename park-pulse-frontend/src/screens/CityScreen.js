@@ -1,70 +1,83 @@
-import { NavigationArrow } from 'phosphor-react-native';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
 
-const cities = [
-  { id: '1', name: 'Bengaluru', state: 'India', active: true },
-  { id: '2', name: 'Mumbai', state: 'India', active: false },
-  { id: '3', name: 'Chennai', state: 'India', active: false },
-  { id: '4', name: 'Hyderabad', state: 'India', active: false },
-  { id: '5', name: 'Bhopal', state: 'India', active: false },
+// Our list of cities
+const CITIES = [
+  { id: '1', name: 'Bengaluru', state: 'India' },
+  { id: '2', name: 'Mumbai', state: 'India' },
+  { id: '3', name: 'Chennai', state: 'India' },
+  { id: '4', name: 'Hyderabad', state: 'India' },
+  { id: '5', name: 'Bhopal', state: 'India' },
 ];
 
-const CityScreen = ({ navigation }) => {
+export default function CityScreen({ navigation }) {
+  const [selectedCity, setSelectedCity] = useState(null);
+
+  const handleSelectCity = (city) => {
+    setSelectedCity(city.name);
+    
+    // As soon as a city is clicked, navigate to the Home screen 
+    // and pass the chosen city name along with it!
+    setTimeout(() => {
+      navigation.navigate('Home', { cityName: city.name });
+    }, 300); // 300ms delay just so the user can see the green highlight click
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.cityItem,
+        selectedCity === item.name && styles.selectedCityItem
+      ]}
+      onPress={() => handleSelectCity(item)}
+    >
+      <View style={[styles.checkbox, selectedCity === item.name && styles.checkboxSelected]}>
+        {selectedCity === item.name && <View style={styles.checkboxInner} />}
+      </View>
+      <View>
+        <Text style={styles.cityName}>{item.name}</Text>
+        <Text style={styles.cityState}>{item.state}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Select Manually</Text>
-      
-      {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <TextInput 
-            placeholder="Search your city..." 
-            placeholderTextColor="#666" 
-            style={styles.input}
-        />
-      </View>
+      <Text style={styles.headerTitle}>Select Manually</Text>
 
-      {/* Locate Me Button */}
-      <TouchableOpacity style={styles.locateBtn} onPress={() => navigation.navigate('Home')}>
-        <NavigationArrow size={20} color="#00ff88" weight="fill" />
-        <Text style={styles.locateText}>Locate Me</Text>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search your city..."
+        placeholderTextColor="#888"
+      />
+
+      <TouchableOpacity style={styles.locateButton}>
+        <Text style={styles.locateText}>➤ Locate Me</Text>
       </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Recommended Popular Locations</Text>
+      <Text style={styles.subHeader}>Recommended Popular Locations</Text>
 
-      {/* City List */}
-      <FlatList 
-        data={cities}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.cityRow} onPress={() => navigation.navigate('Home')}>
-            <View style={[styles.checkbox, item.active && styles.activeCheckbox]}>
-                {item.active && <View style={styles.innerDot}/>}
-            </View>
-            <View>
-                <Text style={[styles.cityName, item.active && {color: '#00ff88'}]}>{item.name}</Text>
-                <Text style={styles.cityState}>{item.state}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+      <FlatList
+        data={CITIES}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
       />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f0f', paddingTop: 60, paddingHorizontal: 20 },
-  title: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
-  searchBar: { backgroundColor: '#222', padding: 15, borderRadius: 12, marginBottom: 15 },
-  input: { color: '#fff', fontSize: 16 },
-  locateBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-  locateText: { color: '#00ff88', marginLeft: 10, fontWeight: 'bold', fontSize: 16 },
-  sectionTitle: { color: '#888', marginBottom: 15, fontSize: 14 },
-  cityRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, paddingBottom: 15, borderBottomColor: '#222', borderBottomWidth: 1 },
-  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: '#666', marginRight: 15, justifyContent: 'center', alignItems: 'center' },
-  activeCheckbox: { borderColor: '#00ff88' },
-  innerDot: { width: 10, height: 10, backgroundColor: '#00ff88', borderRadius: 2 },
-  cityName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  cityState: { color: '#666', fontSize: 14 }
+  container: { flex: 1, backgroundColor: '#121212', padding: 20, paddingTop: 60 },
+  headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  searchInput: { backgroundColor: '#1E1E1E', color: 'white', padding: 15, borderRadius: 10, fontSize: 16, marginBottom: 20 },
+  locateButton: { marginBottom: 30 },
+  locateText: { color: '#00E676', fontSize: 16, fontWeight: 'bold' },
+  subHeader: { color: '#888', fontSize: 14, marginBottom: 15 },
+  cityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#1E1E1E' },
+  selectedCityItem: { backgroundColor: 'rgba(0, 230, 118, 0.1)' },
+  checkbox: { height: 20, width: 20, borderRadius: 4, borderWidth: 2, borderColor: '#888', alignItems: 'center', justifyContent: 'center', marginRight: 15 },
+  checkboxSelected: { borderColor: '#00E676' },
+  checkboxInner: { width: 10, height: 10, borderRadius: 2, backgroundColor: '#00E676' },
+  cityName: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  cityState: { color: '#888', fontSize: 12 },
 });
-
-export default CityScreen;

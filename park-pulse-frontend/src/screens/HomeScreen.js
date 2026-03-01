@@ -95,7 +95,7 @@ const HomeScreen = () => {
       </View>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', padding: 20 },
@@ -128,5 +128,3 @@ const styles = StyleSheet.create({
   loadingText: { color: '#00FF66', marginTop: 10 },
   noDataText: { color: '#555', textAlign: 'center', marginTop: 10, fontStyle: 'italic' }
 });
-
-export default HomeScreen;
