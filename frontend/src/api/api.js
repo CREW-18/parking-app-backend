@@ -2,9 +2,10 @@ import axios from "axios";
 
 const defaultBaseURL = "https://parking-app-backend-u019.onrender.com";
 const configuredBaseURL = import.meta.env.VITE_API_BASE_URL || defaultBaseURL;
+export const API_BASE_URL = configuredBaseURL.replace(/\/$/, "");
 
 export const api = axios.create({
-  baseURL: configuredBaseURL.replace(/\/$/, ""),
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",

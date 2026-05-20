@@ -1,19 +1,47 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Cpu, Clock, Layers, Zap, User, Target } from "lucide-react";
+import { AlertCircle, ChevronLeft, Cpu, Clock, Layers, RefreshCw, Target, Zap } from "lucide-react";
 import { useUser } from "../context/UserContext"; 
-import { api } from "../api/api";
+import { API_BASE_URL, api } from "../api/api";
+
+const HARDWARE_SLOT_POLL_MS = 2000;
+const BOOKING_MALL_STORAGE_KEY = "slotify:lastBookingMall";
+const DEFAULT_MALL = {
+  name: "UB City Mall",
+  image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c",
+};
+const KCT_MALL = {
+  name: "KCT",
+  image: "https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=900",
+};
 
 export default function Booking() {
   const navigate = useNavigate();
   const locationData = useLocation();
   const { userData } = useUser(); 
 
-  const mall = locationData.state || {
-    name: "UB City Mall",
-    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c"
-  };
+  const mall = useMemo(() => {
+    if (locationData.state?.name) {
+      return locationData.state;
+    }
+
+    const venueParam = new URLSearchParams(locationData.search).get("venue");
+    if (venueParam?.toUpperCase() === "KCT") {
+      return KCT_MALL;
+    }
+
+    try {
+      const storedMall = JSON.parse(sessionStorage.getItem(BOOKING_MALL_STORAGE_KEY));
+      if (storedMall?.name) {
+        return storedMall;
+      }
+    } catch {
+      sessionStorage.removeItem(BOOKING_MALL_STORAGE_KEY);
+    }
+
+    return DEFAULT_MALL;
+  }, [locationData.search, locationData.state]);
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [floor, setFloor] = useState("F1");
@@ -21,8 +49,20 @@ export default function Booking() {
   const [exitMinutes, setExitMinutes] = useState(660); 
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [hardwareSlots, setHardwareSlots] = useState([]);
+  const [hardwareSync, setHardwareSync] = useState({
+    isRefreshing: false,
+    hasLoaded: false,
+    lastSyncedAt: null,
+    error: null,
+  });
 
   const isHardwareVenue = mall.name?.toUpperCase() === "KCT";
+
+  useEffect(() => {
+    if (mall?.name) {
+      sessionStorage.setItem(BOOKING_MALL_STORAGE_KEY, JSON.stringify(mall));
+    }
+  }, [mall]);
 
   const formatTime = (mins) => {
     const h = Math.floor(mins / 60);
@@ -76,6 +116,17 @@ export default function Booking() {
   }, [floor, entryMinutes, showHeatmap, isHardwareVenue, hardwareSlots]);
 
   const duration = exitMinutes > entryMinutes ? ((exitMinutes - entryMinutes) / 60).toFixed(1) : null;
+  const openSlotCount = hardwareSlots.filter((slot) => slot.isAvailable).length;
+
+  const formatSyncTime = (date) => {
+    if (!date) return "Waiting";
+
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
 
   const handleContinue = () => {
     navigate("/payment", {
@@ -102,23 +153,180 @@ export default function Booking() {
   useEffect(() => {
     if (!isHardwareVenue) {
       setHardwareSlots([]);
+      setHardwareSync({
+        isRefreshing: false,
+        hasLoaded: false,
+        lastSyncedAt: null,
+        error: null,
+      });
       return;
     }
 
+    let isMounted = true;
+    let isRequestInFlight = false;
+    let eventSource = null;
+
     const fetchHardwareSlots = async () => {
+      if (isRequestInFlight) {
+        return;
+      }
+
+      isRequestInFlight = true;
+
+      if (isMounted) {
+        setHardwareSync((previous) => ({
+          ...previous,
+          isRefreshing: true,
+        }));
+      }
+
       try {
         const response = await api.get("/api/slots", {
-          params: { locationName: "KCT", hardwareLinked: "true" },
+          params: {
+            locationName: "KCT",
+            hardwareLinked: "true",
+            _: Date.now(),
+          },
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
         });
-        setHardwareSlots(Array.isArray(response.data) ? response.data : []);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const nextSlots = Array.isArray(response.data) ? response.data : [];
+        setHardwareSlots(nextSlots);
+        setHardwareSync({
+          isRefreshing: false,
+          hasLoaded: true,
+          lastSyncedAt: new Date(),
+          error: null,
+        });
       } catch (error) {
         console.error("Hardware slot fetch failed:", error);
-        setHardwareSlots([]);
+
+        if (isMounted) {
+          setHardwareSync((previous) => ({
+            ...previous,
+            isRefreshing: false,
+            hasLoaded: true,
+            error: "Sync delayed",
+          }));
+        }
+      } finally {
+        isRequestInFlight = false;
       }
     };
 
+    const updateSlotsFromStream = (nextSlots) => {
+      if (!isMounted || !Array.isArray(nextSlots)) {
+        return;
+      }
+
+      setHardwareSlots(nextSlots);
+      setHardwareSync({
+        isRefreshing: false,
+        hasLoaded: true,
+        lastSyncedAt: new Date(),
+        error: null,
+      });
+    };
+
+    const updateOneSlotFromStream = (nextSlot) => {
+      if (!isMounted || !nextSlot?.slotNumber) {
+        return;
+      }
+
+      setHardwareSlots((previousSlots) => {
+        const slotExists = previousSlots.some((slot) => slot.slotNumber === nextSlot.slotNumber);
+
+        if (!slotExists) {
+          return [...previousSlots, nextSlot].sort((a, b) => a.slotNumber.localeCompare(b.slotNumber));
+        }
+
+        return previousSlots.map((slot) => (slot.slotNumber === nextSlot.slotNumber ? nextSlot : slot));
+      });
+
+      setHardwareSync({
+        isRefreshing: false,
+        hasLoaded: true,
+        lastSyncedAt: new Date(),
+        error: null,
+      });
+    };
+
+    const openHardwareStream = () => {
+      if (!window.EventSource) {
+        return;
+      }
+
+      const streamUrl = new URL("/api/slots/events", API_BASE_URL);
+      streamUrl.searchParams.set("locationName", "KCT");
+      streamUrl.searchParams.set("hardwareLinked", "true");
+
+      eventSource = new EventSource(streamUrl.toString());
+
+      eventSource.onopen = () => {
+        if (isMounted) {
+          setHardwareSync((previous) => ({
+            ...previous,
+            error: null,
+          }));
+        }
+      };
+
+      eventSource.addEventListener("slots", (event) => {
+        updateSlotsFromStream(JSON.parse(event.data));
+      });
+
+      eventSource.addEventListener("slot", (event) => {
+        updateOneSlotFromStream(JSON.parse(event.data));
+      });
+
+      eventSource.onerror = () => {
+        if (isMounted) {
+          setHardwareSync((previous) => ({
+            ...previous,
+            error: previous.hasLoaded ? null : "Sync delayed",
+          }));
+        }
+      };
+    };
+
     fetchHardwareSlots();
+    openHardwareStream();
+    const pollTimer = window.setInterval(fetchHardwareSlots, HARDWARE_SLOT_POLL_MS);
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchHardwareSlots();
+      }
+    };
+
+    window.addEventListener("focus", fetchHardwareSlots);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      eventSource?.close();
+      window.clearInterval(pollTimer);
+      window.removeEventListener("focus", fetchHardwareSlots);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [isHardwareVenue]);
+
+  useEffect(() => {
+    if (!selectedSlot) {
+      return;
+    }
+
+    const selectedHardwareSlot = hardwareSlots.find((slot) => slot.slotNumber === selectedSlot);
+    if (selectedHardwareSlot && !selectedHardwareSlot.isAvailable) {
+      setSelectedSlot(null);
+    }
+  }, [hardwareSlots, selectedSlot]);
 
   return (
     <div className="min-h-screen bg-[#000d1a] text-white font-sans overflow-x-hidden relative">
@@ -249,15 +457,43 @@ export default function Booking() {
               </div>
 
               <div className="flex justify-between items-center mb-8 px-2">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Grid Authorization</h2>
-                <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
-                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                   <span className="text-[8px] font-black text-green-500 tracking-[0.2em] uppercase">Live</span>
+                <div>
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Grid Authorization</h2>
+                  {isHardwareVenue && (
+                    <p className="mt-2 text-[8px] font-black uppercase tracking-[0.2em] text-zinc-600">
+                      {openSlotCount}/{hardwareSlots.length || 0} open - synced {formatSyncTime(hardwareSync.lastSyncedAt)}
+                    </p>
+                  )}
+                </div>
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${
+                  hardwareSync.error
+                    ? "bg-orange-500/10 border-orange-500/20"
+                    : "bg-green-500/10 border-green-500/20"
+                }`}>
+                   {hardwareSync.error ? (
+                    <AlertCircle size={10} className="text-orange-400" />
+                   ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                   )}
+                   <span className={`text-[8px] font-black tracking-[0.2em] uppercase ${
+                    hardwareSync.error ? "text-orange-400" : "text-green-500"
+                   }`}>
+                    {hardwareSync.error || (hardwareSync.isRefreshing ? "Syncing" : "Live")}
+                   </span>
+                   {hardwareSync.isRefreshing && (
+                    <RefreshCw size={10} className="text-green-500 animate-spin" />
+                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-4 gap-4">
-                {slots.length === 0 && (
+                {isHardwareVenue && !hardwareSync.hasLoaded && (
+                  <div className="col-span-4 py-10 text-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 border border-dashed border-white/10 rounded-3xl">
+                    Syncing hardware slots...
+                  </div>
+                )}
+
+                {hardwareSync.hasLoaded && slots.length === 0 && (
                   <div className="col-span-4 py-10 text-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 border border-dashed border-white/10 rounded-3xl">
                     No hardware slots online
                   </div>
@@ -269,7 +505,7 @@ export default function Booking() {
                   
                   // Text remains visible always, but container changes
                   if (isDisabled) {
-                    colorClass = "bg-white/[0.01] border-white/5 text-zinc-800"; // Ghost look, but ID visible
+                    colorClass = "bg-red-500/10 border-red-500/30 text-red-300";
                   } else if (slot.id === selectedSlot) {
                     colorClass = "bg-[#00FFFF] text-black border-[#00FFFF] shadow-[0_0_30px_rgba(0,255,255,0.5)] scale-110 z-10 ring-4 ring-[#000d1a]";
                   } else if (slot.occupancy < 0.3) {

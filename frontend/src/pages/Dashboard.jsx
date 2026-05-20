@@ -189,7 +189,7 @@ const Dashboard = () => {
               <motion.div
                 key={mall._id || idx}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate("/booking", { state: mall })}
+                onClick={() => navigate(`/booking?venue=${encodeURIComponent(mall.name)}`, { state: mall })}
                 className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-[2.8rem] p-6 cursor-pointer group transition-all hover:bg-white/[0.05] hover:border-[#00FFFF]/20 shadow-xl"
               >
                 <div className="flex gap-6 items-center">
