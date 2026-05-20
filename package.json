@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:slots": "node scripts/seedSlots.js"
+    "seed:slots": "node scripts/seedSlots.js",
+    "seed:locations": "node scripts/seedLocations.js",
+    "seed:all": "npm run seed:slots && npm run seed:locations"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
