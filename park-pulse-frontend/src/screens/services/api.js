@@ -1,10 +1,13 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 
-// 1. This uses your exact IPv4 address to bridge the Wi-Fi gap
-// DO NOT use 'localhost' here; your phone won't find it!
-export const API_URL = "http://10.78.169.136:5000/api";
+const getDevHost = () => {
+  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost;
+  return hostUri ? hostUri.split(':')[0] : '127.0.0.1';
+};
 
-// 2. Create the Axios engine with the correct base address
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || `http://${getDevHost()}:5000/api`;
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {

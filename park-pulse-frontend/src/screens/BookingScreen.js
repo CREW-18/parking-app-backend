@@ -1,42 +1,35 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import api from './services/api';
 
-const BookingScreen = ({ route, navigation }) => {
+const BookingScreen = ({ route }) => {
   const initialSlotId = route?.params?.slotId || '';
 
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [slotId, setSlotId] = useState(initialSlotId);
   const [loading, setLoading] = useState(false);
-  const [ticket, setTicket] = useState(null); 
+  const [ticket, setTicket] = useState(null);
 
   const handleConfirmParking = async () => {
     if (!vehicleNumber || !slotId) {
-      Alert.alert("Missing Data", "Please enter both the Vehicle Number and Slot ID.");
+      Alert.alert('Missing Data', 'Please enter both the vehicle number and slot ID.');
       return;
     }
 
     setLoading(true);
     try {
-      // ⚠️ CRUCIAL: REPLACE WITH YOUR ACTUAL IP ADDRESS IF NEEDED
-      const response = await fetch('http://10.78.169.136:5000/api/parking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vehicleNumber: vehicleNumber,
-          slotId: slotId
-        }),
+      const response = await api.post('/parking', {
+        vehicleNumber,
+        slotId,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setTicket(data);
-      } else {
-        Alert.alert("Parking Failed", data.message || "Please check the Slot ID and try again.");
-      }
+      setTicket(response.data.parking);
     } catch (error) {
-      console.error("Booking Error:", error);
-      Alert.alert("Network Error", "Could not connect to the server.");
+      console.error('Booking error:', error);
+      Alert.alert(
+        'Parking Failed',
+        error.response?.data?.message || 'Could not connect to the server.'
+      );
     } finally {
       setLoading(false);
     }
@@ -47,18 +40,19 @@ const BookingScreen = ({ route, navigation }) => {
       <View style={styles.container}>
         <Text style={styles.brandText}>PARK PULSE</Text>
         <View style={styles.ticketCard}>
-          <Text style={styles.ticketTitle}>Parking ticket (1)</Text>
+          <Text style={styles.ticketTitle}>Parking ticket</Text>
           <Text style={styles.ticketText}>Ticket no.: {ticket._id?.substring(0, 8).toUpperCase()}</Text>
           <Text style={styles.ticketText}>Vehicle: {ticket.vehicleNumber}</Text>
+          <Text style={styles.ticketText}>Slot: {ticket.slotId?.slotNumber || slotId}</Text>
           <View style={styles.qrPlaceholder}>
-            <Text style={styles.qrText}>[ QR CODE WILL GENERATE HERE ]</Text>
+            <Text style={styles.qrText}>QR CODE PLACEHOLDER</Text>
           </View>
-          <Text style={styles.feeText}>Total Amount : ₹30.00</Text>
+          <Text style={styles.feeText}>Total Amount: Rs 30.00</Text>
         </View>
         <TouchableOpacity
           style={styles.doneButton}
           onPress={() => {
-            setTicket(null); 
+            setTicket(null);
             setVehicleNumber('');
             setSlotId('');
           }}
@@ -87,7 +81,7 @@ const BookingScreen = ({ route, navigation }) => {
       <Text style={styles.label}>TARGET SLOT ID</Text>
       <TextInput
         style={styles.input}
-        placeholder="Paste ID from Dashboard"
+        placeholder="Paste slot _id from the slots list"
         placeholderTextColor="#555"
         value={slotId}
         onChangeText={setSlotId}

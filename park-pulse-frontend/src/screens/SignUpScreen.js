@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { registerUser } from './services/authService';
 
 const SignUpScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -8,21 +9,11 @@ const SignUpScreen = ({ navigation }) => {
 
   const handleSignUp = async () => {
     try {
-      const response = await fetch("http://10.78.169.136:5000/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      if (response.ok) {
-        Alert.alert("Success", "Account created! Now Log In.");
-        navigation.navigate("Login");
-      } else {
-        const errorData = await response.json();
-        Alert.alert("Registration Failed", errorData.message || "Something went wrong");
-      }
+      await registerUser({ name, email, password });
+      Alert.alert('Success', 'Account created. You can log in now.');
+      navigation.navigate('Login');
     } catch (error) {
-      Alert.alert("Network Error", "Check your Wi-Fi and Backend at 10.78.169.136");
+      Alert.alert('Registration Failed', error.message || 'Check your Wi-Fi and backend.');
     }
   };
 
@@ -35,8 +26,8 @@ const SignUpScreen = ({ navigation }) => {
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-        <Text style={{color: '#00FF7F', textAlign: 'center', marginTop: 15}}>Already have an account? Log In</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.loginLink}>Already have an account? Log In</Text>
       </TouchableOpacity>
     </View>
   );
@@ -47,7 +38,8 @@ const styles = StyleSheet.create({
   title: { color: '#FFF', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 30 },
   input: { backgroundColor: '#111', color: '#FFF', padding: 15, borderRadius: 10, marginBottom: 15 },
   button: { backgroundColor: '#00FF7F', padding: 15, borderRadius: 30, alignItems: 'center' },
-  buttonText: { color: '#000', fontWeight: 'bold' }
+  buttonText: { color: '#000', fontWeight: 'bold' },
+  loginLink: { color: '#00FF7F', textAlign: 'center', marginTop: 15 },
 });
 
 export default SignUpScreen;
