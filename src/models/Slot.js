@@ -15,6 +15,23 @@ const slotSchema = new mongoose.Schema(
       enum: ["Car", "Bike"],
       default: "Car",
     },
+    locationName: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: "",
+    },
+    hardwareId: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      unique: true,
+      sparse: true,
+    },
+    isHardwareLinked: {
+      type: Boolean,
+      default: false,
+    },
     isAvailable: {
       type: Boolean,
       default: true,

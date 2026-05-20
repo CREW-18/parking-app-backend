@@ -12,6 +12,13 @@ const slots = [
   { slotNumber: "B1", vehicleType: "Bike" },
   { slotNumber: "B2", vehicleType: "Bike" },
   { slotNumber: "B3", vehicleType: "Bike" },
+  {
+    slotNumber: "KCT-A1",
+    vehicleType: "Car",
+    locationName: "KCT",
+    hardwareId: "KCT-SENSOR-01",
+    isHardwareLinked: true,
+  },
 ];
 
 const seedSlots = async () => {
@@ -22,8 +29,8 @@ const seedSlots = async () => {
       slots.map((slot) =>
         Slot.updateOne(
           { slotNumber: slot.slotNumber },
-          { $setOnInsert: { ...slot, isAvailable: true } },
-          { upsert: true }
+          { $set: slot, $setOnInsert: { isAvailable: true } },
+          { upsert: true, runValidators: true }
         )
       )
     );
