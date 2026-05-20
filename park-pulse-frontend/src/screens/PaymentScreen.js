@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import api from './services/api';
 
 export default function PaymentScreen({ route, navigation }) {
   const { mall, slot, hours, totalPrice } = route.params;
@@ -10,18 +11,13 @@ export default function PaymentScreen({ route, navigation }) {
   const handlePayment = async () => {
     setIsProcessing(true);
     try {
-      // UPDATED TO YOUR REAL IP
-      const response = await fetch('http://10.22.9.136:5000/api/bookings/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mallName: mall.name, slot, hours, totalPrice })
-      });
-      setIsProcessing(false);
+      await api.post('/bookings', { mallName: mall.name, slot, hours, totalPrice });
       navigation.navigate('Ticket', { mall, slot, hours, totalPrice });
     } catch (error) {
-      console.error("Payment failed", error);
+      console.error('Payment failed:', error);
+      alert('Database error. Please check your backend connection.');
+    } finally {
       setIsProcessing(false);
-      alert("Database error! Please check your IP connection.");
     }
   };
 
@@ -33,7 +29,7 @@ export default function PaymentScreen({ route, navigation }) {
         <View style={styles.receipt}>
           <Text style={styles.text}>Mall: {mall.name}</Text>
           <Text style={styles.text}>Slot: {slot}</Text>
-          <Text style={styles.total}>Total: ₹{totalPrice}</Text>
+          <Text style={styles.total}>Total: Rs {totalPrice}</Text>
         </View>
         <TouchableOpacity style={styles.btn} onPress={handlePayment} disabled={isProcessing}>
           {isProcessing ? <ActivityIndicator color="#121212" /> : <Text style={styles.btnText}>Pay Now</Text>}
@@ -51,5 +47,5 @@ const styles = StyleSheet.create({
   text: { color: '#94A3B8', fontSize: 18, marginBottom: 10 },
   total: { color: '#00E676', fontSize: 32, fontWeight: 'bold', marginTop: 10 },
   btn: { backgroundColor: '#00E676', padding: 20, borderRadius: 15, alignItems: 'center' },
-  btnText: { color: '#121212', fontSize: 20, fontWeight: 'bold' }
+  btnText: { color: '#121212', fontSize: 20, fontWeight: 'bold' },
 });
