@@ -1,9 +1,19 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, ChevronLeft, Cpu, Clock, Layers, RefreshCw, Target, Zap } from "lucide-react";
-import { useUser } from "../context/UserContext"; 
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Clock,
+  Layers,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  TimerReset,
+} from "lucide-react";
 import { API_BASE_URL, api } from "../api/api";
+import { Button, StatusPill, Surface } from "../components/PremiumUI";
+import { useUser } from "../context/UserContext";
 
 const HARDWARE_SLOT_POLL_MS = 2000;
 const BOOKING_MALL_STORAGE_KEY = "slotify:lastBookingMall";
@@ -19,7 +29,7 @@ const KCT_MALL = {
 export default function Booking() {
   const navigate = useNavigate();
   const locationData = useLocation();
-  const { userData } = useUser(); 
+  const { userData } = useUser();
 
   const mall = useMemo(() => {
     if (locationData.state?.name) {
@@ -45,8 +55,8 @@ export default function Booking() {
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [floor, setFloor] = useState("F1");
-  const [entryMinutes, setEntryMinutes] = useState(600); 
-  const [exitMinutes, setExitMinutes] = useState(660); 
+  const [entryMinutes, setEntryMinutes] = useState(600);
+  const [exitMinutes, setExitMinutes] = useState(660);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [hardwareSlots, setHardwareSlots] = useState([]);
   const [hardwareSync, setHardwareSync] = useState({
@@ -110,7 +120,7 @@ export default function Booking() {
         id: `${floor}-A${i + 1}`,
         occupancy,
         unavailable: permanentlyBlocked || predictedFull,
-        permanentlyBlocked
+        permanentlyBlocked,
       };
     });
   }, [floor, entryMinutes, showHeatmap, isHardwareVenue, hardwareSlots]);
@@ -130,16 +140,16 @@ export default function Booking() {
 
   const handleContinue = () => {
     navigate("/payment", {
-      state: { 
-        userId: userData?.userId, 
+      state: {
+        userId: userData?.userId,
         userName: userData?.name,
-        mall: mall.name, 
-        slot: selectedSlot, 
-        entryTime: formatTime(entryMinutes), 
-        exitTime: formatTime(exitMinutes), 
+        mall: mall.name,
+        slot: selectedSlot,
+        entryTime: formatTime(entryMinutes),
+        exitTime: formatTime(exitMinutes),
         duration,
-        amount: 120 
-      }
+        amount: 120,
+      },
     });
   };
 
@@ -329,248 +339,216 @@ export default function Booking() {
   }, [hardwareSlots, selectedSlot]);
 
   return (
-    <div className="min-h-screen bg-[#000d1a] text-white font-sans overflow-x-hidden relative">
-      
-      {/* CINEMATIC HEADER */}
-      <div className="relative h-96 w-full overflow-hidden">
-        <motion.img 
-          initial={{ scale: 1.2 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 2 }}
-          src={mall.image} 
-          alt={mall.name} 
-          className="w-full h-full object-cover opacity-40 grayscale-[20%]" 
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#000d1a]/60 to-[#000d1a]"></div>
-
-        <div className="absolute top-12 left-6 right-6 flex justify-between items-center z-20">
-          <button 
+    <main className="page-shell mobile-safe-bottom">
+      <header className="mb-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+        <div>
+          <button
             onClick={() => navigate(-1)}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-black/40 border border-white/10 backdrop-blur-xl"
+            className="mb-6 inline-flex min-h-12 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 font-bold text-[var(--ink)] shadow-[0_10px_24px_rgba(0,0,0,0.22)]"
           >
-            <ChevronLeft size={20} className="text-[#00FFFF]" />
+            <ArrowLeft size={18} />
+            Back
           </button>
-          
-          <div className="px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center gap-3">
-             <div className="text-right">
-                <p className="text-[7px] font-black text-[#00FFFF] uppercase tracking-widest">Pilot Identity</p>
-                <p className="text-[10px] font-black uppercase tracking-tight">{userData?.name?.split(' ')[0] || "Guest"}</p>
-             </div>
-             <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#00FFFF]/30">
-                <img src={userData?.profilePic} alt="P" className="w-full h-full object-cover" />
-             </div>
-          </div>
+          <p className="eyebrow mb-3">Booking setup</p>
+          <h1 className="text-5xl font-black tracking-tight text-[var(--ink)]">{mall.name}</h1>
+          <p className="muted-copy mt-3 max-w-xl leading-7">
+            Set arrival, check live availability, and reserve one clean unit for your visit.
+          </p>
         </div>
-
-        <div className="absolute bottom-12 left-8 right-8">
-          <div className="flex items-center gap-2 mb-3">
-             <Target size={14} className="text-[#00FFFF] animate-pulse" />
-             <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">Target Grid Sector</span>
-          </div>
-          <h1 className="text-5xl font-black tracking-tighter uppercase leading-none drop-shadow-2xl">
-            {mall.name}
-          </h1>
-        </div>
-      </div>
-
-      <div className="px-6 -mt-6 relative z-10 pb-52">
-
-        {/* DUAL TIME DIALS */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {[
-            { label: "Arrival Vector", time: entryMinutes, type: "entry" },
-            { label: "Departure Vector", time: exitMinutes, type: "exit" }
-          ].map((dial) => (
-            <div key={dial.label} className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <p className="text-zinc-500 text-[8px] uppercase tracking-[0.3em] mb-5 font-black text-center">{dial.label}</p>
-              <div className="flex justify-between items-center bg-black/60 rounded-2xl p-1.5 border border-white/5">
-                <button 
-                  onClick={() => adjustTime(dial.type, -10)} 
-                  className="w-10 h-10 flex items-center justify-center text-white/20 hover:text-[#00FFFF] transition-all hover:bg-white/5 rounded-xl"
-                >
-                  -
-                </button>
-                <span className="text-xl font-black tabular-nums text-white uppercase">{formatTime(dial.time)}</span>
-                <button 
-                  onClick={() => adjustTime(dial.type, 10)} 
-                  className="w-10 h-10 flex items-center justify-center text-white/20 hover:text-[#00FFFF] transition-all hover:bg-white/5 rounded-xl"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* DURATION BADGE */}
-        {duration && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} 
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-10 py-4 bg-gradient-to-r from-[#00FFFF]/10 via-[#00FFFF]/5 to-transparent border-l-4 border-[#00FFFF] px-6 flex justify-between items-center rounded-r-2xl"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-[#00FFFF]/10 rounded-lg">
-                <Clock size={16} className="text-[#00FFFF]" />
-              </div>
+        <Surface className="overflow-hidden p-0">
+          <div className="relative h-64">
+            <img src={mall.image} alt={mall.name} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/72 via-slate-950/10 to-transparent" />
+            <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4 text-white">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Occupancy Protocol</p>
-                <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">Automated Timeline Sync</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-white/70">Pilot identity</p>
+                <p className="mt-1 text-2xl font-black tracking-tight">{userData?.name?.split(" ")[0] || "Guest"}</p>
               </div>
+              <img src={userData?.profilePic} alt="Pilot" className="h-12 w-12 rounded-2xl border border-white/30 bg-[var(--surface)] object-cover" />
             </div>
-            <span className="text-lg font-black text-[#00FFFF] uppercase">{duration} HRS</span>
-          </motion.div>
-        )}
+          </div>
+        </Surface>
+      </header>
 
-        {/* FLOOR NAVIGATOR */}
-        <div className="flex items-center justify-between mb-8 px-2">
-          <div className="flex items-center gap-3">
-             <Layers size={16} className="text-zinc-500" />
-             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Level</span>
-          </div>
-          <div className="flex gap-3">
-            {["F1", "F2", "F3"].map((f) => (
-              <button
-                key={f}
-                onClick={() => { setFloor(f); setSelectedSlot(null); }}
-                className={`w-14 py-2.5 rounded-xl font-black text-[10px] tracking-widest transition-all border ${
-                  floor === f ? "bg-white text-black border-white shadow-[0_10px_20px_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5 text-zinc-500"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+      <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="space-y-5">
+          <Surface className="p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <TimerReset size={20} className="text-[var(--accent)]" />
+              <h2 className="text-xl font-black tracking-tight text-[var(--ink)]">Time window</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              {[
+                { label: "Arrival", time: entryMinutes, type: "entry" },
+                { label: "Departure", time: exitMinutes, type: "exit" },
+              ].map((dial) => (
+                <div key={dial.label} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface-soft)] p-4">
+                  <p className="mb-3 text-sm font-bold text-[var(--muted)]">{dial.label}</p>
+                  <div className="grid grid-cols-[44px_1fr_44px] items-center gap-2 rounded-full bg-[var(--surface)] p-1">
+                    <button
+                      onClick={() => adjustTime(dial.type, -10)}
+                      className="grid h-11 w-11 place-items-center rounded-full text-xl font-black text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+                    >
+                      -
+                    </button>
+                    <span className="stat-number text-center text-2xl font-black tracking-tight text-[var(--ink)]">{formatTime(dial.time)}</span>
+                    <button
+                      onClick={() => adjustTime(dial.type, 10)}
+                      className="grid h-11 w-11 place-items-center rounded-full text-xl font-black text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--ink)]"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {duration && (
+              <div className="mt-5 flex items-center justify-between rounded-[24px] bg-[var(--accent-soft)] p-4 text-[var(--accent-strong)]">
+                <div className="flex items-center gap-3">
+                  <Clock size={18} />
+                  <span className="font-black">Reservation duration</span>
+                </div>
+                <span className="stat-number font-black">{duration} hrs</span>
+              </div>
+            )}
+          </Surface>
+
+          <Surface className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Layers size={20} className="text-[var(--accent)]" />
+                <h2 className="text-xl font-black tracking-tight text-[var(--ink)]">Level</h2>
+              </div>
+              <StatusPill>{floor}</StatusPill>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {["F1", "F2", "F3"].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    setFloor(f);
+                    setSelectedSlot(null);
+                  }}
+                  className={`min-h-12 rounded-full border text-sm font-black transition ${
+                    floor === f
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)] shadow-[0_0_0_1px_rgba(0,255,255,0.16)]"
+                      : "border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-[var(--line-strong)] hover:text-[var(--accent)]"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </Surface>
         </div>
 
-        {/* GRID HEATMAP */}
-        <AnimatePresence>
-          {showHeatmap && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/[0.02] backdrop-blur-3xl border border-white/5 p-8 rounded-[3rem] relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-8 opacity-5">
-                 <Cpu size={60} />
-              </div>
+        <Surface className="p-5 sm:p-7">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="eyebrow mb-2">Grid authorization</p>
+              <h2 className="text-3xl font-black tracking-tight text-[var(--ink)]">Select a unit</h2>
+              {isHardwareVenue && (
+                <p className="mt-2 text-sm font-semibold text-[var(--muted)]">
+                  {openSlotCount}/{hardwareSlots.length || 0} open · synced {formatSyncTime(hardwareSync.lastSyncedAt)}
+                </p>
+              )}
+            </div>
+            <StatusPill tone={hardwareSync.error ? "warning" : "success"}>
+              {hardwareSync.error ? <AlertCircle size={14} /> : <span className="h-2 w-2 rounded-full bg-[var(--success)]" />}
+              {hardwareSync.error || (hardwareSync.isRefreshing ? "Syncing" : "Live")}
+              {hardwareSync.isRefreshing && <RefreshCw size={14} className="animate-spin" />}
+            </StatusPill>
+          </div>
 
-              <div className="flex justify-between items-center mb-8 px-2">
-                <div>
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Grid Authorization</h2>
-                  {isHardwareVenue && (
-                    <p className="mt-2 text-[8px] font-black uppercase tracking-[0.2em] text-zinc-600">
-                      {openSlotCount}/{hardwareSlots.length || 0} open - synced {formatSyncTime(hardwareSync.lastSyncedAt)}
-                    </p>
-                  )}
-                </div>
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${
-                  hardwareSync.error
-                    ? "bg-orange-500/10 border-orange-500/20"
-                    : "bg-green-500/10 border-green-500/20"
-                }`}>
-                   {hardwareSync.error ? (
-                    <AlertCircle size={10} className="text-orange-400" />
-                   ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                   )}
-                   <span className={`text-[8px] font-black tracking-[0.2em] uppercase ${
-                    hardwareSync.error ? "text-orange-400" : "text-green-500"
-                   }`}>
-                    {hardwareSync.error || (hardwareSync.isRefreshing ? "Syncing" : "Live")}
-                   </span>
-                   {hardwareSync.isRefreshing && (
-                    <RefreshCw size={10} className="text-green-500 animate-spin" />
-                   )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-4">
+          <AnimatePresence>
+            {showHeatmap && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-4 gap-3 sm:grid-cols-5">
                 {isHardwareVenue && !hardwareSync.hasLoaded && (
-                  <div className="col-span-4 py-10 text-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 border border-dashed border-white/10 rounded-3xl">
+                  <div className="col-span-full rounded-[24px] border border-dashed border-[var(--line)] py-10 text-center text-sm font-bold text-[var(--muted)]">
                     Syncing hardware slots...
                   </div>
                 )}
 
                 {hardwareSync.hasLoaded && slots.length === 0 && (
-                  <div className="col-span-4 py-10 text-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 border border-dashed border-white/10 rounded-3xl">
+                  <div className="col-span-full rounded-[24px] border border-dashed border-[var(--line)] py-10 text-center text-sm font-bold text-[var(--muted)]">
                     No hardware slots online
                   </div>
                 )}
 
                 {slots.map((slot) => {
                   const isDisabled = slot.unavailable;
+                  const isSelected = slot.id === selectedSlot;
+                  const parts = slot.id.split("-");
+                  const level = parts.length > 1 ? parts[0] : "Slot";
+                  const unit = parts.length > 1 ? parts.slice(1).join("-") : slot.id;
                   let colorClass;
-                  
-                  // Text remains visible always, but container changes
+
                   if (isDisabled) {
-                    colorClass = "bg-red-500/10 border-red-500/30 text-red-300";
-                  } else if (slot.id === selectedSlot) {
-                    colorClass = "bg-[#00FFFF] text-black border-[#00FFFF] shadow-[0_0_30px_rgba(0,255,255,0.5)] scale-110 z-10 ring-4 ring-[#000d1a]";
+                    colorClass = "border-red-400/60 bg-red-500/18 text-red-100";
+                  } else if (isSelected) {
+                    colorClass = "border-[var(--accent)] bg-[var(--accent)] text-[#00111f] shadow-[0_18px_34px_rgba(0,255,255,0.22)]";
                   } else if (slot.occupancy < 0.3) {
-                    colorClass = "bg-white/5 border-white/10 text-white hover:border-[#00FFFF]/50";
+                    colorClass = "border-emerald-400/50 bg-emerald-500/12 text-emerald-100 hover:border-emerald-300";
                   } else if (slot.occupancy < 0.6) {
-                    colorClass = "bg-orange-500/5 border-orange-500/20 text-orange-400";
+                    colorClass = "border-orange-400/60 bg-orange-500/18 text-orange-100";
                   } else {
-                    colorClass = "bg-red-500/5 border-red-500/20 text-red-500";
+                    colorClass = "border-red-400/60 bg-red-500/18 text-red-100";
                   }
 
                   return (
-                    <motion.div
+                    <motion.button
                       key={slot.id}
-                      whileTap={!isDisabled ? { scale: 0.9 } : {}}
+                      whileTap={!isDisabled ? { scale: 0.96 } : {}}
                       onClick={() => !isDisabled && setSelectedSlot(slot.id)}
-                      className={`h-24 rounded-3xl border flex flex-col items-center justify-center font-black transition-all duration-500 ${colorClass} ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+                      disabled={isDisabled}
+                      className={`min-h-[86px] rounded-[24px] border p-3 text-center transition ${colorClass}`}
                     >
-                      <span className="text-[7px] opacity-40 mb-1 uppercase tracking-tighter">{slot.id.split('-')[0]}</span>
-                      <span className="text-base tracking-tighter uppercase">{slot.id.split('-')[1]}</span>
-                    </motion.div>
+                      <span className="block text-[11px] font-bold opacity-60">{level}</span>
+                      <span className="stat-number mt-1 block text-lg font-black tracking-tight">{unit}</span>
+                    </motion.button>
                   );
                 })}
-              </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              {/* ENHANCED LEGEND */}
-              <div className="grid grid-cols-4 gap-4 mt-10 pt-8 border-t border-white/5 px-2">
-                {[
-                  { color: "bg-white/20", label: "Open" },
-                  { color: "bg-red-500/40", label: "Full" },
-                  { color: "bg-zinc-800", label: "Block" },
-                  { color: "bg-[#00FFFF]", label: "Your Selection" }
-                ].map((item) => (
-                  <div key={item.label} className="flex flex-col items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl border border-white/10 ${item.color}`}></div> 
-                    <span className="text-[9px] uppercase font-black text-white tracking-widest text-center">{item.label}</span>
-                  </div>
-                ))}
+          <div className="mt-7 grid grid-cols-2 gap-3 border-t border-[var(--line)] pt-6 sm:grid-cols-4">
+            {[
+              { color: "bg-emerald-400", label: "Open" },
+              { color: "bg-red-500", label: "Full" },
+              { color: "bg-orange-400", label: "Busy" },
+              { color: "bg-[var(--accent)]", label: "Selected" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2 text-sm font-bold text-[var(--muted)]">
+                    <span className={`h-5 w-5 rounded-lg border border-white/20 ${item.color} shadow-[0_0_0_1px_rgba(0,0,0,0.18)]`} />
+                {item.label}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            ))}
+          </div>
+        </Surface>
+      </section>
 
-      {/* CTA BUTTON */}
-      <div className="fixed bottom-24 left-0 right-0 p-8 z-[90] pointer-events-none">
-        <motion.button
-          disabled={!selectedSlot}
-          whileTap={selectedSlot ? { scale: 0.95 } : {}}
-          onClick={handleContinue}
-          className={`w-full py-5 rounded-[2rem] font-black uppercase tracking-[0.3em] text-[10px] flex items-center justify-center gap-4 transition-all pointer-events-auto backdrop-blur-2xl border ${
-            selectedSlot 
-              ? "bg-[#00FFFF] text-black border-[#00FFFF] shadow-[0_20px_50px_rgba(0,255,255,0.3)]" 
-              : "bg-white/5 text-zinc-700 border-white/5"
-          }`}
-        >
-          {selectedSlot ? (
-            <>
-              <Zap size={18} fill="currentColor" /> 
-              Confirm Protocol {selectedSlot}
-            </>
-          ) : (
-            "Select Grid Unit"
-          )}
-        </motion.button>
+      <div className="sticky bottom-28 z-40 mt-6">
+        <Surface className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-[var(--muted)]">Selected unit</p>
+            <p className="text-2xl font-black tracking-tight text-[var(--ink)]">{selectedSlot || "Choose a slot"}</p>
+          </div>
+          <Button variant={selectedSlot ? "accent" : "muted"} disabled={!selectedSlot} onClick={handleContinue} className="w-full px-7 sm:w-auto">
+            {selectedSlot ? (
+              <>
+                <ShieldCheck size={18} />
+                Continue to payment
+              </>
+            ) : (
+              <>
+                <Sparkles size={18} />
+                Select grid unit
+              </>
+            )}
+          </Button>
+        </Surface>
       </div>
-    </div>
+    </main>
   );
 }

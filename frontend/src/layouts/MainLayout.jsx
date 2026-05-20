@@ -2,20 +2,17 @@ import BottomNavigation from "../components/BottomNavigation";
 
 const MainLayout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-[#000d1a] text-white relative overflow-x-hidden">
-      
-      {/* GLOBAL SYSTEM BLOOM - Provides depth across all child pages */}
-      <div className="fixed top-[-10%] left-[-10%] w-[70%] h-[50%] bg-[#00FFFF]/5 blur-[120px] rounded-full pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[50%] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none z-0" />
+    <div className="app-bg relative overflow-x-hidden">
+      <div className="pointer-events-none fixed inset-0 soft-grid opacity-60" />
+      <div className="pointer-events-none fixed -right-24 top-[-12rem] h-[30rem] w-[30rem] rounded-full bg-cyan-400/10 blur-3xl" />
+      <div className="pointer-events-none fixed -left-24 bottom-[-14rem] h-[30rem] w-[30rem] rounded-full bg-blue-500/10 blur-3xl" />
 
-      {/* Main Content: Relative z-10 to stay above the blooms */}
-      <div className="relative z-10 pb-32">
+      <div className="relative z-10">
         {children}
       </div>
-      
-      {/* FLOATING GLASS DOCK */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-[100]">
-        <div className="bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 shadow-[0_25px_50px_rgba(0,0,0,0.6),0_0_20px_rgba(0,255,255,0.05)]">
+
+      <div className="fixed bottom-5 left-1/2 z-[100] w-[calc(100%-32px)] max-w-md -translate-x-1/2 pb-[env(safe-area-inset-bottom)]">
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface)]/90 p-2 shadow-[0_20px_60px_rgba(0,0,0,0.42)] backdrop-blur-2xl">
           <BottomNavigation />
         </div>
       </div>
