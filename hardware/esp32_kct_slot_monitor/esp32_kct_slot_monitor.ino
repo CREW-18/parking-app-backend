@@ -28,7 +28,7 @@ const unsigned long ECHO_TIMEOUT_US = 60000;
 const unsigned long SENSOR_READ_MS = 250;
 const unsigned long STATE_STABLE_MS = 1000;
 const unsigned long SEND_COOLDOWN_MS = 1000;
-const unsigned long HEARTBEAT_MS = 5000;
+const unsigned long HEARTBEAT_MS = 2000;
 
 bool rawSensorBlocked = false;
 bool stableSensorBlocked = false;
