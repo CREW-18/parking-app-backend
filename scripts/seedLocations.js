@@ -38,6 +38,14 @@ const locations = [
     status: "Congested",
     image: "https://images.unsplash.com/photo-1567449303078-57ad995bd17d?auto=format&fit=crop&q=80&w=900",
   },
+  {
+    name: "KCT",
+    location: "Kumaraguru College of Technology, Coimbatore",
+    distance: "0.0 km",
+    rating: 4.7,
+    status: "Available",
+    image: "https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=900",
+  },
 ];
 
 const seedLocations = async () => {

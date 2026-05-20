@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Cpu, Clock, Layers, Zap, User, Target } from "lucide-react";
 import { useUser } from "../context/UserContext"; 
+import { api } from "../api/api";
 
 export default function Booking() {
   const navigate = useNavigate();
@@ -19,6 +20,9 @@ export default function Booking() {
   const [entryMinutes, setEntryMinutes] = useState(600); 
   const [exitMinutes, setExitMinutes] = useState(660); 
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [hardwareSlots, setHardwareSlots] = useState([]);
+
+  const isHardwareVenue = mall.name?.toUpperCase() === "KCT";
 
   const formatTime = (mins) => {
     const h = Math.floor(mins / 60);
@@ -37,6 +41,17 @@ export default function Booking() {
 
   const slots = useMemo(() => {
     if (!showHeatmap) return [];
+
+    if (isHardwareVenue) {
+      return hardwareSlots.map((slot) => ({
+        id: slot.slotNumber,
+        occupancy: slot.isAvailable ? 0.1 : 1,
+        unavailable: !slot.isAvailable,
+        hardwareId: slot.hardwareId,
+        isHardwareLinked: slot.isHardwareLinked,
+      }));
+    }
+
     const hour = Math.floor(entryMinutes / 60);
 
     return Array.from({ length: 20 }, (_, i) => {
@@ -58,7 +73,7 @@ export default function Booking() {
         permanentlyBlocked
       };
     });
-  }, [floor, entryMinutes, showHeatmap]);
+  }, [floor, entryMinutes, showHeatmap, isHardwareVenue, hardwareSlots]);
 
   const duration = exitMinutes > entryMinutes ? ((exitMinutes - entryMinutes) / 60).toFixed(1) : null;
 
@@ -83,6 +98,27 @@ export default function Booking() {
       setSelectedSlot(null);
     }
   }, [entryMinutes, floor]);
+
+  useEffect(() => {
+    if (!isHardwareVenue) {
+      setHardwareSlots([]);
+      return;
+    }
+
+    const fetchHardwareSlots = async () => {
+      try {
+        const response = await api.get("/api/slots", {
+          params: { locationName: "KCT", hardwareLinked: "true" },
+        });
+        setHardwareSlots(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Hardware slot fetch failed:", error);
+        setHardwareSlots([]);
+      }
+    };
+
+    fetchHardwareSlots();
+  }, [isHardwareVenue]);
 
   return (
     <div className="min-h-screen bg-[#000d1a] text-white font-sans overflow-x-hidden relative">
@@ -221,6 +257,12 @@ export default function Booking() {
               </div>
 
               <div className="grid grid-cols-4 gap-4">
+                {slots.length === 0 && (
+                  <div className="col-span-4 py-10 text-center text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600 border border-dashed border-white/10 rounded-3xl">
+                    No hardware slots online
+                  </div>
+                )}
+
                 {slots.map((slot) => {
                   const isDisabled = slot.unavailable;
                   let colorClass;

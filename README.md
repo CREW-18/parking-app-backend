@@ -8,7 +8,7 @@ The current primary app is:
 - Web frontend: Vite, React, Tailwind, Framer Motion
 - Legacy mobile app: the older Expo app is still preserved in `park-pulse-frontend/`
 
-ESP32 hardware integration comes after the software flow is stable.
+ESP32/NodeMCU hardware integration comes after the software flow is stable.
 
 ## Folder Structure
 
@@ -17,6 +17,7 @@ parking-app-backend/
   src/                    Backend API source
   scripts/                Database seed scripts
   frontend/               Primary React web frontend
+  hardware/               ESP32/NodeMCU sketch and setup guide for KCT slot hardware
   park-pulse-frontend/    Legacy Expo mobile app, preserved for reference
   ai_service.py           Optional Python heatmap service
   .env.example            Backend env example
@@ -225,8 +226,11 @@ Parking slots for actual slot availability and ESP32:
 
 ```text
 GET   /api/slots
+GET   /api/slots?locationName=KCT&hardwareLinked=true
 POST  /api/slots
 PATCH /api/slots/:slotId/availability
+POST  /api/slots/hardware/:hardwareId/availability
+PATCH /api/slots/hardware/:hardwareId/availability
 ```
 
 Bookings:
@@ -270,6 +274,35 @@ Empty:
 ```
 
 Keep hardware mapping simple at first: one sensor maps to one MongoDB slot `_id`.
+
+For the seeded KCT hardware slot, the hardware-friendly endpoint is:
+
+```http
+POST https://parking-app-backend-u019.onrender.com/api/slots/hardware/KCT-SENSOR-01/availability
+Content-Type: application/json
+```
+
+Occupied:
+
+```json
+{
+  "sensorBlocked": true
+}
+```
+
+Empty:
+
+```json
+{
+  "sensorBlocked": false
+}
+```
+
+The same endpoint also accepts `PATCH` with `isAvailable`.
+
+The seed scripts create venue `KCT` and hardware slot `KCT-A1` with hardware id `KCT-SENSOR-01`.
+
+ESP32/NodeMCU code and wiring/setup instructions are in `hardware/README.md`.
 
 ## Fresh Setup Checklist
 
