@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const Booking = require("../models/Booking");
 const User = require("../models/User");
+const Slot = require("../models/Slot");
+const slotEvents = require("../realtime/slotEvents");
 
 const createBooking = async (req, res) => {
   try {
@@ -21,6 +23,22 @@ const createBooking = async (req, res) => {
       userId,
       qrToken,
     });
+
+    // Update slot status to booked
+    const updatedSlot = await Slot.findOneAndUpdate(
+      { slotNumber: slot.toUpperCase() },
+      {
+        status: "booked",
+        bookingToken: qrToken,
+        isAvailable: false,
+      },
+      { new: true }
+    );
+
+    if (updatedSlot) {
+      slotEvents.emit("availability", updatedSlot.toObject());
+    }
+
     res.status(201).json(booking);
   } catch (error) {
     res.status(500).json({ message: "Booking failed", error: error.message });
@@ -47,6 +65,20 @@ const verifyQR = async (req, res) => {
       userId: user._id,
     };
     await booking.save();
+
+    // Update slot status to occupied and populate occupiedBy
+    const updatedSlot = await Slot.findOneAndUpdate(
+      { slotNumber: booking.slot.toUpperCase() },
+      {
+        status: "occupied",
+        occupiedBy: booking.occupiedBy,
+      },
+      { new: true }
+    );
+
+    if (updatedSlot) {
+      slotEvents.emit("availability", updatedSlot.toObject());
+    }
 
     res.json({ message: "QR verified", occupiedBy: booking.occupiedBy });
   } catch (error) {

@@ -36,6 +36,24 @@ const slotSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    status: {
+      type: String,
+      enum: ["free", "booked", "occupied"],
+      default: "free",
+    },
+    bookingToken: {
+      type: String,
+      default: null,
+    },
+    occupiedBy: {
+      name: { type: String, default: null },
+      email: { type: String, default: null },
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+    },
   },
   { timestamps: true }
 );
