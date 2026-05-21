@@ -1,19 +1,58 @@
+const crypto = require("crypto");
 const Booking = require("../models/Booking");
+const User = require("../models/User");
 
 const createBooking = async (req, res) => {
   try {
-    const { mallName, slot, hours, totalPrice } = req.body;
+    const { mallName, slot, hours, totalPrice, userId } = req.body;
 
-    if (!mallName || !slot || !hours || !totalPrice) {
+    if (!mallName || !slot || !hours || !totalPrice || !userId) {
       return res.status(400).json({
-        message: "mallName, slot, hours, and totalPrice are required",
+        message: "mallName, slot, hours, totalPrice, and userId are required",
       });
     }
 
-    const booking = await Booking.create({ mallName, slot, hours, totalPrice });
+    const qrToken = crypto.randomUUID();
+    const booking = await Booking.create({
+      mallName,
+      slot,
+      hours,
+      totalPrice,
+      userId,
+      qrToken,
+    });
     res.status(201).json(booking);
   } catch (error) {
     res.status(500).json({ message: "Booking failed", error: error.message });
+  }
+};
+
+const verifyQR = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const booking = await Booking.findOne({ qrToken: token });
+
+    if (!booking) return res.status(404).json({ message: "Invalid QR token" });
+    if (booking.qrScanned)
+      return res.status(400).json({ message: "QR already scanned" });
+
+    const user = await User.findById(booking.userId).select("name email");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    booking.qrScanned = true;
+    booking.status = "occupied";
+    booking.occupiedBy = {
+      name: user.name,
+      email: user.email,
+      userId: user._id,
+    };
+    await booking.save();
+
+    res.json({ message: "QR verified", occupiedBy: booking.occupiedBy });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Verification failed", error: error.message });
   }
 };
 
@@ -26,4 +65,4 @@ const getBookings = async (req, res) => {
   }
 };
 
-module.exports = { createBooking, getBookings };
+module.exports = { createBooking, getBookings, verifyQR };
