@@ -141,24 +141,11 @@ const updateSlotAvailability = async (req, res) => {
       });
     }
 
-    const update = { isAvailable };
-    if (isAvailable) {
-      update.status = "free";
-      update.bookingToken = null;
-      update.occupiedBy = { name: null, email: null, userId: null };
-    } else {
-      // If manually set to unavailable but not via booking, we might want to set status to occupied or something else
-      // For now, let's just keep it simple. If it's not available, and status is free, mark it as occupied (generic)
-      const currentSlot = await Slot.findById(slotId);
-      if (currentSlot && currentSlot.status === "free") {
-        update.status = "occupied";
-      }
-    }
-
-    const slot = await Slot.findByIdAndUpdate(slotId, update, {
-      new: true,
-      runValidators: true,
-    });
+    const slot = await Slot.findByIdAndUpdate(
+      slotId,
+      { isAvailable },
+      { new: true, runValidators: true }
+    );
 
     if (!slot) {
       return res.status(404).json({ message: "Slot not found" });
@@ -182,23 +169,9 @@ const updateHardwareSlotAvailability = async (req, res) => {
       });
     }
 
-    const update = { isAvailable };
-    if (isAvailable) {
-      update.status = "free";
-      update.bookingToken = null;
-      update.occupiedBy = { name: null, email: null, userId: null };
-    } else {
-      const currentSlot = await Slot.findOne({
-        hardwareId: normalizeText(hardwareId),
-      });
-      if (currentSlot && currentSlot.status === "free") {
-        update.status = "occupied";
-      }
-    }
-
     const slot = await Slot.findOneAndUpdate(
       { hardwareId: normalizeText(hardwareId) },
-      update,
+      { isAvailable },
       { new: true, runValidators: true }
     );
 
